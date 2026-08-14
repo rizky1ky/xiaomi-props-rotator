@@ -1,0 +1,9 @@
+id=xiaomi_prop
+name=Xiaomi Props Rotator
+version=21/08/2025
+versionCode=210825
+author=Kyy
+description=Spoof your device props to Xiaomi 15 [24129PN74G] - Use Action to rotate
+updateJson=https://raw.githubusercontent.com/rizky1ky/xiaomi-props-rotator/main/update.json
+donate=
+support=

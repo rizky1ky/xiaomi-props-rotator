@@ -1,0 +1,108 @@
+###
+#-#
+###
+
+###
+# begin product/etc/build.prop
+###
+
+# begin common build properties
+
+
+ro.product.device=dada
+ro.product.model=24129PN74G
+ro.product.name=dada
+ro.product.product.brand=Xiaomi
+ro.product.product.device=dada
+ro.product.product.model=24129PN74G
+ro.product.product.name=dada
+# end common build properties
+
+
+ro.product.bootimage.brand=Xiaomi
+ro.product.bootimage.device=dada
+ro.product.bootimage.model=24129PN74G
+ro.product.bootimage.name=dada
+
+# end PRODUCT_BOOTIMAGE_PROPERTIES
+
+###
+# end product/etc/build.prop
+###
+
+###
+#-#
+###
+
+###
+# begin vendor/build.prop
+###
+
+# begin common build properties
+
+ro.product.vendor.device=dada
+ro.product.vendor.model=24129PN74G
+ro.product.vendor.name=dada
+
+# end PRODUCT_VENDOR_PROPERTIES
+
+# begin ADDITIONAL_VENDOR_PROPERTIES
+
+# begin PRODUCT_PROPERTY_OVERRIDE
+
+###
+# end vendor/build.prop
+###
+
+###
+#-#
+###
+
+###
+# begin vendor/odm/etc/build.prop
+###
+
+# begin common build properties
+ro.product.odm.brand=Xiaomi
+ro.product.odm.device=dada
+ro.product.odm.model=24129PN74G
+ro.product.odm.name=dada
+
+###
+# begin system/system/build.prop
+###
+
+# begin common build properties
+ro.product.system.brand=Xiaomi
+ro.product.system.device=generic
+ro.product.system.model=mainline
+ro.product.system.name=mainline
+# end common build properties
+
+# begin build properties
+
+
+# begin PRODUCT_SYSTEM_PROPERTIES
+#end PRODUCT_SYSTEM_PROPERTIES
+
+###
+# end system/system/build.prop
+###
+
+###
+#-#
+###
+
+###
+# begin system_ext/etc/build.prop
+###
+
+# begin common build properties
+ro.product.system_ext.brand=Xiaomi
+ro.product.system_ext.device=dada
+ro.product.system_ext.model=24129PN74G
+ro.product.system_ext.name=dada
+
+###
+# end system_ext/etc/build.prop
+###
