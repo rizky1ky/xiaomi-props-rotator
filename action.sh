@@ -263,14 +263,9 @@ fi
 echo "  system.prop  -> Updated"
 echo "  module.prop  -> Updated"
 echo ""
-echo "  Rebooting in..."
-i=5
-while [ $i -gt 0 ]; do
-  echo "  $i..."
-  sleep 1
-  i=$((i - 1))
-done
-echo ""
-echo "  Rebooting now!"
 echo "========================================"
-/system/bin/svc power reboot || reboot
+echo "    -- ACTION COMPLETED SUCCESSFULLY --"
+echo "    -- Please Reboot Your Device --"
+echo "========================================"
+echo ""
+exit 0
