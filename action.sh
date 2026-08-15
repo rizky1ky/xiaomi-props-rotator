@@ -51,24 +51,17 @@ fi
 
 MODE="random"
 CFG_CODENAME=""
-CFG_MODEL=""
-CFG_DEVICE_NAME=""
 
-# Search config across all possible locations
-CONFIG_PATH=""
-for path in "$CONFIG_FILE" "/data/adb/modules/xiaomi_prop/device.conf" "/data/adb/modules_update/xiaomi_prop/device.conf" "/data/adb/xiaomi_prop_device.conf"; do
-  if [ -f "$path" ]; then
-    CONFIG_PATH="$path"
-    break
+# Read mode.txt and selected.txt
+for dir in "$MODPATH" "/data/adb/modules/xiaomi_prop" "/data/adb/modules_update/xiaomi_prop"; do
+  if [ -f "$dir/mode.txt" ]; then
+    MODE=$(cat "$dir/mode.txt" 2>/dev/null | tr -d '\r\n ')
   fi
+  if [ -f "$dir/selected.txt" ]; then
+    CFG_CODENAME=$(cat "$dir/selected.txt" 2>/dev/null | tr -d '\r\n ')
+  fi
+  [ -n "$MODE" ] && [ -n "$CFG_CODENAME" ] && break
 done
-
-if [ -n "$CONFIG_PATH" ]; then
-  MODE=$(grep -m1 "^MODE=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_PATH" | cut -d= -f2- | tr -d '\r\n')
-fi
 
 ###########################
 # Select device
@@ -96,8 +89,8 @@ if [ "$MODE" = "manual" ] && [ -n "$CFG_CODENAME" ]; then
     DEVICE_NAME=$(echo "$FOUND_ENTRY" | cut -d'|' -f3)
   else
     CODENAME="$CFG_CODENAME"
-    MODEL="$CFG_MODEL"
-    DEVICE_NAME="$CFG_DEVICE_NAME"
+    MODEL="Unknown"
+    DEVICE_NAME="$CFG_CODENAME"
   fi
   SELECT_MODE="Manual (WebUI)"
 else
