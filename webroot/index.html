@@ -337,18 +337,39 @@
   <div class="toast" id="toast"></div>
 
   <script type="module">
-    // KernelSU/APatch WebUI API
-    // We use dynamic import with fallback for development
-    let ksuExec = null;
-    try {
-      const ksu = await import('kernelsu');
-      ksuExec = ksu.exec;
-    } catch(e) {
-      // Fallback for testing outside KSU environment
-      ksuExec = async (cmd) => {
-        console.log('[exec]', cmd);
-        return { errno: 0, stdout: '', stderr: '' };
-      };
+    async function execShell(cmd) {
+      if (window.parent && window.parent !== window && typeof window.parent.runShellFromIframe === 'function') {
+        try {
+          const res = await window.parent.runShellFromIframe(cmd);
+          return (res || '').replace(/\r/g, '');
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      const ksuApi = (typeof ksu !== 'undefined' && ksu.exec) ? ksu : (window.parent && window.parent.ksu) ? window.parent.ksu : null;
+      if (ksuApi && typeof ksuApi.exec === 'function') {
+        return new Promise((resolve) => {
+          const cb = `cb_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
+          window[cb] = (code, stdout, stderr) => {
+            delete window[cb];
+            resolve((stdout || '').replace(/\r/g, ''));
+          };
+          try {
+            ksuApi.exec(cmd, '{}', cb);
+          } catch(err) {
+            resolve('');
+          }
+        });
+      }
+      try {
+        const mod = await import('kernelsu');
+        if (mod && mod.exec) {
+          const { stdout } = await mod.exec(cmd);
+          return (stdout || '').replace(/\r/g, '');
+        }
+      } catch(e) {}
+      console.log('[dev execShell]', cmd);
+      return '';
     }
 
     const DEVICES = [
@@ -367,8 +388,6 @@
     ];
 
     const MODPATH = '/data/adb/modules/xiaomi_prop';
-    const MODE_FILE = `${MODPATH}/mode.txt`;
-    const SELECTED_FILE = `${MODPATH}/selected.txt`;
 
     let selectedCodename = localStorage.getItem('selectedCodename') || null;
     let isRandomMode = localStorage.getItem('isRandomMode') === 'true';
@@ -384,24 +403,21 @@
     // ---- Read current config ----
     async function loadCurrentConfig() {
       try {
-        // Read mode.txt
-        const { stdout: modeOut } = await ksuExec(`cat ${MODE_FILE} 2>/dev/null`);
+        const modeOut = await execShell(`cat /data/adb/modules/xiaomi_prop/mode.txt 2>/dev/null`);
         if (modeOut && modeOut.trim()) {
           const modeVal = modeOut.trim().replace(/[\r\n ]/g, '');
           isRandomMode = (modeVal === 'random');
           localStorage.setItem('isRandomMode', isRandomMode ? 'true' : 'false');
         }
 
-        // Read selected.txt
-        const { stdout: selOut } = await ksuExec(`cat ${SELECTED_FILE} 2>/dev/null`);
+        const selOut = await execShell(`cat /data/adb/modules/xiaomi_prop/selected.txt 2>/dev/null`);
         if (selOut && selOut.trim()) {
           selectedCodename = selOut.trim().replace(/[\r\n ]/g, '');
           localStorage.setItem('selectedCodename', selectedCodename);
         }
 
-        // Fallback to system.prop if not selected yet
         if (!selectedCodename && !isRandomMode) {
-          const { stdout: propOut } = await ksuExec(`grep -m1 "^ro.product.device=" ${MODPATH}/system.prop 2>/dev/null | cut -d= -f2`);
+          const propOut = await execShell(`grep -m1 "^ro.product.device=" /data/adb/modules/xiaomi_prop/system.prop 2>/dev/null | cut -d= -f2`);
           if (propOut && propOut.trim()) {
             selectedCodename = propOut.trim().replace(/[\r\n ]/g, '');
             localStorage.setItem('selectedCodename', selectedCodename);
@@ -460,22 +476,21 @@
       btn.textContent = 'Saving...';
 
       try {
+        const modeStr = isRandomMode ? 'random' : 'manual';
+        const codeStr = selectedCodename || 'dada';
+
         localStorage.setItem('isRandomMode', isRandomMode ? 'true' : 'false');
         if (selectedCodename) {
           localStorage.setItem('selectedCodename', selectedCodename);
         }
 
-        const modeStr = isRandomMode ? 'random' : 'manual';
-        const codeStr = selectedCodename || 'dada';
-
-        // Simple echo to text files across all paths
         const paths = [
           '/data/adb/modules/xiaomi_prop',
           '/data/adb/modules_update/xiaomi_prop'
         ];
 
         for (const p of paths) {
-          await ksuExec(`mkdir -p ${p} 2>/dev/null; echo "${modeStr}" > ${p}/mode.txt; echo "${codeStr}" > ${p}/selected.txt`);
+          await execShell(`mkdir -p ${p} 2>/dev/null; echo "${modeStr}" > ${p}/mode.txt; echo "${codeStr}" > ${p}/selected.txt; chmod 666 ${p}/mode.txt ${p}/selected.txt 2>/dev/null`);
         }
 
         showToast('Saved! Run Action to apply.', 'success');

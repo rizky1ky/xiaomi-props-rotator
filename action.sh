@@ -49,19 +49,20 @@ fi
 # Read config from WebUI
 ###########################
 
-MODE="random"
+MODE=""
 CFG_CODENAME=""
 
-# Read mode.txt and selected.txt
+# Read mode.txt and selected.txt from all potential module directories
 for dir in "$MODPATH" "/data/adb/modules/xiaomi_prop" "/data/adb/modules_update/xiaomi_prop"; do
-  if [ -f "$dir/mode.txt" ]; then
+  if [ -z "$MODE" ] && [ -f "$dir/mode.txt" ]; then
     MODE=$(cat "$dir/mode.txt" 2>/dev/null | tr -d '\r\n ')
   fi
-  if [ -f "$dir/selected.txt" ]; then
+  if [ -z "$CFG_CODENAME" ] && [ -f "$dir/selected.txt" ]; then
     CFG_CODENAME=$(cat "$dir/selected.txt" 2>/dev/null | tr -d '\r\n ')
   fi
-  [ -n "$MODE" ] && [ -n "$CFG_CODENAME" ] && break
 done
+
+[ -z "$MODE" ] && MODE="random"
 
 ###########################
 # Select device
