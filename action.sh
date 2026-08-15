@@ -4,7 +4,13 @@
 # Triggered via Root Manager Action Button
 # Config saved by WebUI at device.conf
 
-MODPATH="${0%/*}"
+# Safe MODPATH resolution
+SCRIPT_DIR="$(dirname "$0")"
+MODPATH="$(cd "$SCRIPT_DIR" 2>/dev/null && pwd)"
+if [ -z "$MODPATH" ] || [ "$MODPATH" = "." ] || [ ! -f "$MODPATH/module.prop" ]; then
+  MODPATH="/data/adb/modules/xiaomi_prop"
+fi
+
 MODPATH_SYSTEM_PROP="$MODPATH/system.prop"
 MODPATH_MODULE_PROP="$MODPATH/module.prop"
 CONFIG_FILE="$MODPATH/device.conf"
@@ -240,11 +246,17 @@ ro.product.system_ext.name=${CODENAME}
 EOF
 
 ###########################
-# Update module.prop description
+# Update module.prop description safely
 ###########################
 
 if [ -f "$MODPATH_MODULE_PROP" ]; then
-  sed -i "s/^description=.*/description=Spoof your device props to ${DEVICE_NAME} [${MODEL}] - Use Action to rotate/" "$MODPATH_MODULE_PROP"
+  grep -v "^description=" "$MODPATH_MODULE_PROP" > "$MODPATH/module.prop.tmp" 2>/dev/null
+  echo "description=Spoof your device props to ${DEVICE_NAME} [${MODEL}] - Use Action to rotate" >> "$MODPATH/module.prop.tmp"
+  if [ -s "$MODPATH/module.prop.tmp" ]; then
+    mv -f "$MODPATH/module.prop.tmp" "$MODPATH_MODULE_PROP"
+  else
+    rm -f "$MODPATH/module.prop.tmp"
+  fi
 fi
 
 echo "  system.prop  -> Updated"
