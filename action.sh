@@ -260,8 +260,23 @@ if [ -f "$MODPATH_MODULE_PROP" ]; then
   fi
 fi
 
+###########################
+# Fix Permissions & SELinux context
+###########################
+
+chmod 0644 "$MODPATH_SYSTEM_PROP" 2>/dev/null
+chown 0:0 "$MODPATH_SYSTEM_PROP" 2>/dev/null
+if [ -f "$MODPATH_MODULE_PROP" ]; then
+  chmod 0644 "$MODPATH_MODULE_PROP" 2>/dev/null
+  chown 0:0 "$MODPATH_MODULE_PROP" 2>/dev/null
+fi
+chmod 0644 "$MODPATH/mode.txt" "$MODPATH/selected.txt" 2>/dev/null
+chown 0:0 "$MODPATH/mode.txt" "$MODPATH/selected.txt" 2>/dev/null
+restorecon -R "$MODPATH" 2>/dev/null || true
+
 echo "  system.prop  -> Updated"
 echo "  module.prop  -> Updated"
+echo "  permissions  -> Restored (0644 root:root)"
 echo ""
 echo "========================================"
 echo "    -- ACTION COMPLETED SUCCESSFULLY --"
