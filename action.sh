@@ -54,13 +54,16 @@ CFG_CODENAME=""
 CFG_MODEL=""
 CFG_DEVICE_NAME=""
 
-# Check both MODPATH and fixed path
-CONFIG_PATH="$CONFIG_FILE"
-if [ ! -f "$CONFIG_PATH" ] && [ -f "/data/adb/modules/xiaomi_prop/device.conf" ]; then
-  CONFIG_PATH="/data/adb/modules/xiaomi_prop/device.conf"
-fi
+# Search config across all possible locations
+CONFIG_PATH=""
+for path in "$CONFIG_FILE" "/data/adb/modules/xiaomi_prop/device.conf" "/data/adb/modules_update/xiaomi_prop/device.conf" "/data/adb/xiaomi_prop_device.conf"; do
+  if [ -f "$path" ]; then
+    CONFIG_PATH="$path"
+    break
+  fi
+done
 
-if [ -f "$CONFIG_PATH" ]; then
+if [ -n "$CONFIG_PATH" ]; then
   MODE=$(grep -m1 "^MODE=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
   CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
   CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
@@ -113,20 +116,6 @@ else
     [ "$CODENAME" != "$CURRENT_CODENAME" ] && break
     ATTEMPT=$((ATTEMPT + 1))
   done
-fi
-
-# Skip if same device already applied
-if [ "$CODENAME" = "$CURRENT_CODENAME" ]; then
-  echo ""
-  echo "========================================"
-  echo "  Xiaomi Props Rotator"
-  echo "========================================"
-  echo ""
-  echo "  $DEVICE_NAME [$MODEL] is already active."
-  echo "  No changes needed."
-  echo "========================================"
-  echo ""
-  exit 0
 fi
 
 echo ""

@@ -367,10 +367,14 @@
     ];
 
     const MODPATH = '/data/adb/modules/xiaomi_prop';
-    const CONFIG_FILE = `${MODPATH}/device.conf`;
+    const CONFIG_FILES = [
+      `${MODPATH}/device.conf`,
+      '/data/adb/modules_update/xiaomi_prop/device.conf',
+      '/data/adb/xiaomi_prop_device.conf'
+    ];
 
-    let selectedCodename = null;
-    let isRandomMode = false;
+    let selectedCodename = localStorage.getItem('selectedCodename') || null;
+    let isRandomMode = localStorage.getItem('isRandomMode') === 'true';
 
     // ---- Toast ----
     function showToast(msg, type = '') {
@@ -382,34 +386,53 @@
 
     // ---- Read current config ----
     async function loadCurrentConfig() {
+      // 1. Try local storage first
+      const savedCodename = localStorage.getItem('selectedCodename');
+      const savedRandom = localStorage.getItem('isRandomMode');
+      if (savedRandom !== null) {
+        isRandomMode = (savedRandom === 'true');
+      }
+      if (savedCodename) {
+        selectedCodename = savedCodename;
+      }
+
+      // 2. Try reading from device.conf files
       try {
-        const { errno, stdout } = await ksuExec(`cat ${CONFIG_FILE} 2>/dev/null`);
-        if (errno === 0 && stdout && stdout.trim()) {
-          const lines = stdout.trim().split(/\r?\n/);
-          const config = {};
-          lines.forEach(l => {
-            const idx = l.indexOf('=');
-            if (idx !== -1) {
-              const k = l.substring(0, idx).trim();
-              const v = l.substring(idx + 1).trim();
-              config[k] = v;
+        for (const file of CONFIG_FILES) {
+          const { errno, stdout } = await ksuExec(`cat ${file} 2>/dev/null`);
+          if (errno === 0 && stdout && stdout.trim()) {
+            const lines = stdout.trim().split(/\r?\n/);
+            const config = {};
+            lines.forEach(l => {
+              const idx = l.indexOf('=');
+              if (idx !== -1) {
+                const k = l.substring(0, idx).trim();
+                const v = l.substring(idx + 1).trim();
+                config[k] = v;
+              }
+            });
+            if (config.MODE === 'random') {
+              isRandomMode = true;
+              localStorage.setItem('isRandomMode', 'true');
+            } else if (config.CODENAME) {
+              selectedCodename = config.CODENAME;
+              isRandomMode = false;
+              localStorage.setItem('selectedCodename', config.CODENAME);
+              localStorage.setItem('isRandomMode', 'false');
             }
-          });
-          if (config.MODE === 'random') {
-            isRandomMode = true;
-          } else if (config.CODENAME) {
-            selectedCodename = config.CODENAME;
-            isRandomMode = false;
+            break;
           }
-        } else {
-          // No config file, read current from system.prop
+        }
+
+        if (!selectedCodename && !isRandomMode) {
           const { stdout: propOut } = await ksuExec(`grep -m1 "^ro.product.device=" ${MODPATH}/system.prop 2>/dev/null | cut -d= -f2`);
           if (propOut && propOut.trim()) {
             selectedCodename = propOut.trim().replace(/[\r\n]/g, '');
+            localStorage.setItem('selectedCodename', selectedCodename);
           }
         }
       } catch(e) {
-        console.error(e);
+        console.error('loadCurrentConfig error:', e);
       }
     }
 
@@ -461,23 +484,37 @@
       btn.textContent = 'Saving...';
 
       try {
-        let cmd = '';
+        // Save to localStorage immediately
+        localStorage.setItem('isRandomMode', isRandomMode ? 'true' : 'false');
+        if (selectedCodename) {
+          localStorage.setItem('selectedCodename', selectedCodename);
+        }
+
+        let fileContent = '';
         if (isRandomMode) {
-          cmd = `echo "MODE=random" > ${CONFIG_FILE}`;
+          fileContent = 'MODE=random';
         } else {
           const device = DEVICES.find(d => d.codename === selectedCodename);
-          cmd = `echo "MODE=manual" > ${CONFIG_FILE} && echo "CODENAME=${device.codename}" >> ${CONFIG_FILE} && echo "MODEL=${device.model}" >> ${CONFIG_FILE} && echo "DEVICE_NAME=${device.name}" >> ${CONFIG_FILE}`;
+          fileContent = `MODE=manual\\nCODENAME=${device.codename}\\nMODEL=${device.model}\\nDEVICE_NAME=${device.name}`;
         }
 
-        const { errno, stderr } = await ksuExec(cmd);
+        // Write to all possible config locations
+        let successCount = 0;
+        for (const file of CONFIG_FILES) {
+          const dir = file.substring(0, file.lastIndexOf('/'));
+          const cmd = `mkdir -p "${dir}" 2>/dev/null; printf '%b\\n' "${fileContent}" > "${file}"`;
+          const { errno } = await ksuExec(cmd);
+          if (errno === 0) successCount++;
+        }
 
-        if (errno === 0) {
+        if (successCount > 0) {
           showToast('Saved! Run Action to apply.', 'success');
-          await loadCurrentConfig();
-          render();
         } else {
-          showToast('Error: ' + stderr);
+          showToast('Saved locally. Run Action to apply.', 'success');
         }
+
+        await loadCurrentConfig();
+        render();
       } catch(e) {
         showToast('Error: ' + e.message);
       }
