@@ -55,10 +55,10 @@ CFG_MODEL=""
 CFG_DEVICE_NAME=""
 
 if [ -f "$CONFIG_FILE" ]; then
-  MODE=$(grep -m1 "^MODE=" "$CONFIG_FILE" | cut -d= -f2)
-  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_FILE" | cut -d= -f2)
-  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_FILE" | cut -d= -f2)
-  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_FILE" | cut -d= -f2)
+  MODE=$(grep -m1 "^MODE=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_FILE" | cut -d= -f2- | tr -d '\r\n')
 fi
 
 ###########################

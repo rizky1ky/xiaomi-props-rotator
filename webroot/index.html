@@ -464,10 +464,15 @@
           configContent = `MODE=manual\nCODENAME=${device.codename}\nMODEL=${device.model}\nDEVICE_NAME=${device.name}`;
         }
 
-        const { errno, stderr } = await ksuExec(`echo '${configContent}' > ${CONFIG_FILE}`);
+        const { errno, stderr } = await ksuExec(`printf '%b\\n' '${configContent}' > ${CONFIG_FILE}`);
 
         if (errno === 0) {
+          // Verify write
+          const { stdout: verify } = await ksuExec(`cat ${CONFIG_FILE}`);
+          console.log('Config saved:', verify);
           showToast('Saved! Run Action to apply.', 'success');
+          await loadCurrentConfig();
+          render();
         } else {
           showToast('Error: ' + stderr);
         }
