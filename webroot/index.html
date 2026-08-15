@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xiaomi Props Rotator</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --surface: #1a1d23;
+      --surface-hover: #22262e;
+      --border: #2a2e36;
+      --text: #e4e4e7;
+      --text-dim: #8b8d94;
+      --accent: #ff6900;
+      --accent-hover: #ff8533;
+      --success: #22c55e;
+      --selected: rgba(255, 105, 0, 0.12);
+      --selected-border: #ff6900;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: 100px;
+    }
+
+    .header {
+      text-align: center;
+      padding: 24px 0 8px;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .header p {
+      font-size: 13px;
+      color: var(--text-dim);
+      margin-top: 4px;
+    }
+
+    .current-device {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .current-device .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      flex-shrink: 0;
+    }
+
+    .current-device .info {
+      flex: 1;
+    }
+
+    .current-device .label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .current-device .value {
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 2px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 20px 0 10px;
+      padding: 0 4px;
+    }
+
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .device-item {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .device-item:active {
+      transform: scale(0.98);
+    }
+
+    .device-item:hover {
+      background: var(--surface-hover);
+    }
+
+    .device-item.selected {
+      background: var(--selected);
+      border-color: var(--selected-border);
+    }
+
+    .device-item .radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .device-item.selected .radio {
+      border-color: var(--accent);
+    }
+
+    .device-item.selected .radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    .device-item .device-info {
+      flex: 1;
+    }
+
+    .device-item .device-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .device-item .device-meta {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .bottom-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px;
+      background: linear-gradient(transparent, var(--bg) 24px);
+      padding-top: 40px;
+    }
+
+    .btn-apply {
+      width: 100%;
+      padding: 15px;
+      border-radius: 12px;
+      border: none;
+      background: var(--accent);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-apply:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-apply:disabled {
+      background: var(--border);
+      color: var(--text-dim);
+      cursor: not-allowed;
+    }
+
+    .btn-apply:active {
+      transform: scale(0.98);
+    }
+
+    .toast {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: transform 0.3s ease;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      border-color: var(--success);
+    }
+
+    .mode-toggle {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 16px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mode-toggle .info {
+      flex: 1;
+    }
+
+    .mode-toggle .label {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .mode-toggle .desc {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    .switch {
+      position: relative;
+      width: 48px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--border);
+      border-radius: 28px;
+      transition: 0.2s;
+    }
+
+    .slider::before {
+      content: '';
+      position: absolute;
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--text);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .switch input:checked + .slider {
+      background: var(--accent);
+    }
+
+    .switch input:checked + .slider::before {
+      transform: translateX(20px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>Xiaomi Props Rotator</h1>
+    <p>Select a device to spoof your props</p>
+  </div>
+
+  <div class="current-device" id="currentDevice">
+    <div class="dot"></div>
+    <div class="info">
+      <div class="label">Current Device</div>
+      <div class="value" id="currentName">Loading...</div>
+    </div>
+  </div>
+
+  <div class="mode-toggle">
+    <div class="info">
+      <div class="label">Random Mode</div>
+      <div class="desc">Randomly pick device on each Action</div>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="randomToggle">
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="section-title">Choose Device</div>
+
+  <div class="device-list" id="deviceList"></div>
+
+  <div class="bottom-bar">
+    <button class="btn-apply" id="btnApply" disabled>Save Selection</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module">
+    // KernelSU/APatch WebUI API
+    // We use dynamic import with fallback for development
+    let ksuExec = null;
+    try {
+      const ksu = await import('kernelsu');
+      ksuExec = ksu.exec;
+    } catch(e) {
+      // Fallback for testing outside KSU environment
+      ksuExec = async (cmd) => {
+        console.log('[exec]', cmd);
+        return { errno: 0, stdout: '', stderr: '' };
+      };
+    }
+
+    const DEVICES = [
+      { codename: 'dada', model: '24129PN74G', name: 'Xiaomi 15' },
+      { codename: 'qiaomu', model: '25010PN83G', name: 'Xiaomi 15 Pro' },
+      { codename: 'xuanyuan', model: '25021PNE4G', name: 'Xiaomi 15 Ultra' },
+      { codename: 'houji', model: '23127PN0CG', name: 'Xiaomi 14' },
+      { codename: 'shennong', model: '23116PN5BG', name: 'Xiaomi 14 Pro' },
+      { codename: 'aurora', model: '24030PN60G', name: 'Xiaomi 14 Ultra' },
+      { codename: 'fuxi', model: '2211133G', name: 'Xiaomi 13' },
+      { codename: 'nuwa', model: '2210132G', name: 'Xiaomi 13 Pro' },
+      { codename: 'ishtar', model: '23046PNB4G', name: 'Xiaomi 13 Ultra' },
+      { codename: 'zeus', model: '2201122G', name: 'Xiaomi 12 Pro' },
+      { codename: 'cupid', model: '2201123G', name: 'Xiaomi 12' },
+      { codename: 'thor', model: '2209129SC', name: 'Xiaomi 12T Pro' },
+    ];
+
+    const MODPATH = '/data/adb/modules/xiaomi_prop';
+    const CONFIG_FILE = `${MODPATH}/device.conf`;
+
+    let selectedCodename = null;
+    let isRandomMode = false;
+
+    // ---- Toast ----
+    function showToast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (type ? ` ${type}` : '');
+      setTimeout(() => t.className = 'toast', 2500);
+    }
+
+    // ---- Read current config ----
+    async function loadCurrentConfig() {
+      try {
+        const { errno, stdout } = await ksuExec(`cat ${CONFIG_FILE} 2>/dev/null`);
+        if (errno === 0 && stdout.trim()) {
+          const lines = stdout.trim().split('\n');
+          const config = {};
+          lines.forEach(l => {
+            const [k, ...v] = l.split('=');
+            config[k.trim()] = v.join('=').trim();
+          });
+          if (config.MODE === 'random') {
+            isRandomMode = true;
+          } else if (config.CODENAME) {
+            selectedCodename = config.CODENAME;
+          }
+        } else {
+          // No config file, read current from system.prop
+          const { stdout: propOut } = await ksuExec(`grep -m1 "^ro.product.device=" ${MODPATH}/system.prop 2>/dev/null | cut -d= -f2`);
+          if (propOut.trim()) {
+            selectedCodename = propOut.trim();
+          }
+        }
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    // ---- Render device list ----
+    function render() {
+      const list = document.getElementById('deviceList');
+      const btn = document.getElementById('btnApply');
+      const toggle = document.getElementById('randomToggle');
+      const currentEl = document.getElementById('currentName');
+
+      toggle.checked = isRandomMode;
+
+      // Current device display
+      if (isRandomMode) {
+        currentEl.textContent = 'Random Mode';
+      } else {
+        const cur = DEVICES.find(d => d.codename === selectedCodename);
+        currentEl.textContent = cur ? `${cur.name} (${cur.model})` : 'Not set';
+      }
+
+      // Device list
+      list.innerHTML = '';
+      DEVICES.forEach(device => {
+        const item = document.createElement('div');
+        item.className = 'device-item' + (selectedCodename === device.codename && !isRandomMode ? ' selected' : '');
+        item.innerHTML = `
+          <div class="radio"></div>
+          <div class="device-info">
+            <div class="device-name">${device.name}</div>
+            <div class="device-meta">${device.codename} &middot; ${device.model}</div>
+          </div>
+        `;
+        item.addEventListener('click', () => {
+          isRandomMode = false;
+          toggle.checked = false;
+          selectedCodename = device.codename;
+          render();
+        });
+        list.appendChild(item);
+      });
+
+      btn.disabled = !selectedCodename && !isRandomMode;
+    }
+
+    // ---- Save config ----
+    async function saveConfig() {
+      const btn = document.getElementById('btnApply');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        let configContent;
+        if (isRandomMode) {
+          configContent = 'MODE=random';
+        } else {
+          const device = DEVICES.find(d => d.codename === selectedCodename);
+          configContent = `MODE=manual\nCODENAME=${device.codename}\nMODEL=${device.model}\nDEVICE_NAME=${device.name}`;
+        }
+
+        const { errno, stderr } = await ksuExec(`echo '${configContent}' > ${CONFIG_FILE}`);
+
+        if (errno === 0) {
+          showToast('Saved! Run Action to apply.', 'success');
+        } else {
+          showToast('Error: ' + stderr);
+        }
+      } catch(e) {
+        showToast('Error: ' + e.message);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save Selection';
+    }
+
+    // ---- Events ----
+    document.getElementById('randomToggle').addEventListener('change', (e) => {
+      isRandomMode = e.target.checked;
+      if (isRandomMode) selectedCodename = null;
+      render();
+    });
+
+    document.getElementById('btnApply').addEventListener('click', saveConfig);
+
+    // ---- Init ----
+    await loadCurrentConfig();
+    render();
+  </script>
+
+</body>
+</html>

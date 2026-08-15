@@ -1,11 +1,13 @@
 #!/system/bin/sh
 
-# Xiaomi Flagship Props Random Rotator
+# Xiaomi Flagship Props Rotator
 # Triggered via Root Manager Action Button
+# Config saved by WebUI at device.conf
 
 MODPATH="${0%/*}"
 MODPATH_SYSTEM_PROP="$MODPATH/system.prop"
 MODPATH_MODULE_PROP="$MODPATH/module.prop"
+CONFIG_FILE="$MODPATH/device.conf"
 
 ###########################
 # Xiaomi Flagship Database
@@ -43,27 +45,70 @@ if [ -f "$MODPATH_SYSTEM_PROP" ]; then
   CURRENT_CODENAME=$(grep -m1 "^ro.product.device=" "$MODPATH_SYSTEM_PROP" | cut -d= -f2)
 fi
 
-# Random selection (avoid picking same device)
-MAX_ATTEMPTS=10
-ATTEMPT=0
-while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-  RANDOM_INDEX=$(( $(tr -dc '0-9' < /dev/urandom | head -c 4) % DEVICE_COUNT + 1 ))
-  eval "SELECTED=\$DEVICE_ENTRY_${RANDOM_INDEX}"
+###########################
+# Read config from WebUI
+###########################
 
-  CODENAME=$(echo "$SELECTED" | cut -d'|' -f1)
-  MODEL=$(echo "$SELECTED" | cut -d'|' -f2)
-  DEVICE_NAME=$(echo "$SELECTED" | cut -d'|' -f3)
+MODE="random"
+CFG_CODENAME=""
+CFG_MODEL=""
+CFG_DEVICE_NAME=""
 
-  # If different from current, break
-  [ "$CODENAME" != "$CURRENT_CODENAME" ] && break
-  ATTEMPT=$((ATTEMPT + 1))
-done
+if [ -f "$CONFIG_FILE" ]; then
+  MODE=$(grep -m1 "^MODE=" "$CONFIG_FILE" | cut -d= -f2)
+  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_FILE" | cut -d= -f2)
+  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_FILE" | cut -d= -f2)
+  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_FILE" | cut -d= -f2)
+fi
+
+###########################
+# Select device
+###########################
+
+if [ "$MODE" = "manual" ] && [ -n "$CFG_CODENAME" ]; then
+  # Manual mode: use device from WebUI config
+  CODENAME="$CFG_CODENAME"
+  MODEL="$CFG_MODEL"
+  DEVICE_NAME="$CFG_DEVICE_NAME"
+  SELECT_MODE="Manual (WebUI)"
+else
+  # Random mode: pick random device (avoid same)
+  SELECT_MODE="Random"
+  MAX_ATTEMPTS=10
+  ATTEMPT=0
+  while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+    RANDOM_INDEX=$(( $(tr -dc '0-9' < /dev/urandom | head -c 4) % DEVICE_COUNT + 1 ))
+    eval "SELECTED=\$DEVICE_ENTRY_${RANDOM_INDEX}"
+
+    CODENAME=$(echo "$SELECTED" | cut -d'|' -f1)
+    MODEL=$(echo "$SELECTED" | cut -d'|' -f2)
+    DEVICE_NAME=$(echo "$SELECTED" | cut -d'|' -f3)
+
+    [ "$CODENAME" != "$CURRENT_CODENAME" ] && break
+    ATTEMPT=$((ATTEMPT + 1))
+  done
+fi
+
+# Skip if same device already applied
+if [ "$CODENAME" = "$CURRENT_CODENAME" ]; then
+  echo ""
+  echo "========================================"
+  echo "  Xiaomi Props Rotator"
+  echo "========================================"
+  echo ""
+  echo "  $DEVICE_NAME [$MODEL] is already active."
+  echo "  No changes needed."
+  echo "========================================"
+  echo ""
+  exit 0
+fi
 
 echo ""
 echo "========================================"
-echo "  Xiaomi Props Random Rotator"
+echo "  Xiaomi Props Rotator"
 echo "========================================"
 echo ""
+echo "  Mode     : $SELECT_MODE"
 echo "  Previous : $CURRENT_CODENAME"
 echo "  Selected : $DEVICE_NAME"
 echo "  Codename : $CODENAME"
@@ -190,7 +235,7 @@ EOF
 ###########################
 
 if [ -f "$MODPATH_MODULE_PROP" ]; then
-  sed -i "s/^description=.*/description=Spoof your device props to ${DEVICE_NAME} [${MODEL}]/" "$MODPATH_MODULE_PROP"
+  sed -i "s/^description=.*/description=Spoof your device props to ${DEVICE_NAME} [${MODEL}] - Use Action to rotate/" "$MODPATH_MODULE_PROP"
 fi
 
 echo "  system.prop  -> Updated"
