@@ -253,7 +253,8 @@ if [ -f "$MODPATH_MODULE_PROP" ]; then
   grep -v "^description=" "$MODPATH_MODULE_PROP" > "$MODPATH/module.prop.tmp" 2>/dev/null
   echo "description=Spoof your device props to ${DEVICE_NAME} [${MODEL}] - Use Action to rotate" >> "$MODPATH/module.prop.tmp"
   if [ -s "$MODPATH/module.prop.tmp" ]; then
-    mv -f "$MODPATH/module.prop.tmp" "$MODPATH_MODULE_PROP"
+    cp -f "$MODPATH/module.prop.tmp" "$MODPATH_MODULE_PROP"
+    rm -f "$MODPATH/module.prop.tmp"
   else
     rm -f "$MODPATH/module.prop.tmp"
   fi
