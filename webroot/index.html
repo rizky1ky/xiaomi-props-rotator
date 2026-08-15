@@ -384,23 +384,28 @@
     async function loadCurrentConfig() {
       try {
         const { errno, stdout } = await ksuExec(`cat ${CONFIG_FILE} 2>/dev/null`);
-        if (errno === 0 && stdout.trim()) {
-          const lines = stdout.trim().split('\n');
+        if (errno === 0 && stdout && stdout.trim()) {
+          const lines = stdout.trim().split(/\r?\n/);
           const config = {};
           lines.forEach(l => {
-            const [k, ...v] = l.split('=');
-            config[k.trim()] = v.join('=').trim();
+            const idx = l.indexOf('=');
+            if (idx !== -1) {
+              const k = l.substring(0, idx).trim();
+              const v = l.substring(idx + 1).trim();
+              config[k] = v;
+            }
           });
           if (config.MODE === 'random') {
             isRandomMode = true;
           } else if (config.CODENAME) {
             selectedCodename = config.CODENAME;
+            isRandomMode = false;
           }
         } else {
           // No config file, read current from system.prop
           const { stdout: propOut } = await ksuExec(`grep -m1 "^ro.product.device=" ${MODPATH}/system.prop 2>/dev/null | cut -d= -f2`);
-          if (propOut.trim()) {
-            selectedCodename = propOut.trim();
+          if (propOut && propOut.trim()) {
+            selectedCodename = propOut.trim().replace(/[\r\n]/g, '');
           }
         }
       } catch(e) {
@@ -456,20 +461,17 @@
       btn.textContent = 'Saving...';
 
       try {
-        let configContent;
+        let cmd = '';
         if (isRandomMode) {
-          configContent = 'MODE=random';
+          cmd = `echo "MODE=random" > ${CONFIG_FILE}`;
         } else {
           const device = DEVICES.find(d => d.codename === selectedCodename);
-          configContent = `MODE=manual\nCODENAME=${device.codename}\nMODEL=${device.model}\nDEVICE_NAME=${device.name}`;
+          cmd = `echo "MODE=manual" > ${CONFIG_FILE} && echo "CODENAME=${device.codename}" >> ${CONFIG_FILE} && echo "MODEL=${device.model}" >> ${CONFIG_FILE} && echo "DEVICE_NAME=${device.name}" >> ${CONFIG_FILE}`;
         }
 
-        const { errno, stderr } = await ksuExec(`printf '%b\\n' '${configContent}' > ${CONFIG_FILE}`);
+        const { errno, stderr } = await ksuExec(cmd);
 
         if (errno === 0) {
-          // Verify write
-          const { stdout: verify } = await ksuExec(`cat ${CONFIG_FILE}`);
-          console.log('Config saved:', verify);
           showToast('Saved! Run Action to apply.', 'success');
           await loadCurrentConfig();
           render();

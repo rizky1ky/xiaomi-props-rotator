@@ -54,11 +54,17 @@ CFG_CODENAME=""
 CFG_MODEL=""
 CFG_DEVICE_NAME=""
 
-if [ -f "$CONFIG_FILE" ]; then
-  MODE=$(grep -m1 "^MODE=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_FILE" | cut -d= -f2 | tr -d '\r\n ')
-  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_FILE" | cut -d= -f2- | tr -d '\r\n')
+# Check both MODPATH and fixed path
+CONFIG_PATH="$CONFIG_FILE"
+if [ ! -f "$CONFIG_PATH" ] && [ -f "/data/adb/modules/xiaomi_prop/device.conf" ]; then
+  CONFIG_PATH="/data/adb/modules/xiaomi_prop/device.conf"
+fi
+
+if [ -f "$CONFIG_PATH" ]; then
+  MODE=$(grep -m1 "^MODE=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_CODENAME=$(grep -m1 "^CODENAME=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_MODEL=$(grep -m1 "^MODEL=" "$CONFIG_PATH" | cut -d= -f2 | tr -d '\r\n ')
+  CFG_DEVICE_NAME=$(grep -m1 "^DEVICE_NAME=" "$CONFIG_PATH" | cut -d= -f2- | tr -d '\r\n')
 fi
 
 ###########################
@@ -66,10 +72,30 @@ fi
 ###########################
 
 if [ "$MODE" = "manual" ] && [ -n "$CFG_CODENAME" ]; then
-  # Manual mode: use device from WebUI config
-  CODENAME="$CFG_CODENAME"
-  MODEL="$CFG_MODEL"
-  DEVICE_NAME="$CFG_DEVICE_NAME"
+  # Find device in internal DB for reliable values
+  FOUND_ENTRY=""
+  OLD_IFS="$IFS"
+  IFS='
+'
+  for entry in $DEVICES; do
+    [ -z "$entry" ] && continue
+    cname=$(echo "$entry" | cut -d'|' -f1)
+    if [ "$cname" = "$CFG_CODENAME" ]; then
+      FOUND_ENTRY="$entry"
+      break
+    fi
+  done
+  IFS="$OLD_IFS"
+
+  if [ -n "$FOUND_ENTRY" ]; then
+    CODENAME=$(echo "$FOUND_ENTRY" | cut -d'|' -f1)
+    MODEL=$(echo "$FOUND_ENTRY" | cut -d'|' -f2)
+    DEVICE_NAME=$(echo "$FOUND_ENTRY" | cut -d'|' -f3)
+  else
+    CODENAME="$CFG_CODENAME"
+    MODEL="$CFG_MODEL"
+    DEVICE_NAME="$CFG_DEVICE_NAME"
+  fi
   SELECT_MODE="Manual (WebUI)"
 else
   # Random mode: pick random device (avoid same)
